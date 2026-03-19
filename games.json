@@ -1,0 +1,14 @@
+[
+  {
+    "id": "1",
+    "title": "Cyberpunk 2077",
+    "tags": ["story", "rpg"],
+    "order": 1
+  },
+  {
+    "id": "2",
+    "title": "Helldivers 2",
+    "tags": ["co-op", "shooter"],
+    "order": 2
+  }
+]
