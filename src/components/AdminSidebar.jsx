@@ -11,12 +11,6 @@ import {
 } from 'lucide-react';
 import TagList from './TagList';
 
-/**
- * Sidebar shown only when admin mode is unlocked.  It lists a series of
- * action icons and, when in editing mode, renders a simple form for
- * editing the title and tags of a game.  It relies on parent‑passed
- * callbacks to update state and persist changes.
- */
 export default function AdminSidebar({
   isEditing,
   editingGame,
@@ -32,81 +26,89 @@ export default function AdminSidebar({
   onDownload,
   hasSelection,
 }) {
-  return (
-    <aside className="fixed right-0 top-0 h-full w-64 bg-gray-900 border-l border-neon-cyan shadow-neon-cyan flex flex-col p-4 space-y-4 z-50 overflow-y-auto">
-      {/* Action buttons */}
-      <div className="flex flex-wrap gap-4">
-        <button title="Add new" onClick={onAdd} className="text-neon-green hover:text-neon-cyan">
-          <PlusCircle size={24} />
-        </button>
-        <button
-          title="Edit selected"
-          onClick={onEdit}
-          disabled={!hasSelection}
-          className={`${!hasSelection ? 'opacity-30 cursor-not-allowed' : ''}`}
-        >
-          <Edit2 size={24} className="text-neon-purple" />
-        </button>
-        <button
-          title="Delete selected"
-          onClick={onDelete}
-          disabled={!hasSelection}
-          className={`${!hasSelection ? 'opacity-30 cursor-not-allowed' : ''}`}
-        >
-          <Trash2 size={24} className="text-neon-pink" />
-        </button>
-        <button
-          title={isReordering ? 'Exit reorder mode' : 'Reorder list'}
-          onClick={onToggleReorder}
-        >
-          <Move size={24} className="text-neon-cyan" />
-        </button>
-        <button title="Download TXT" onClick={onDownload}>
-          <Download size={24} className="text-neon-green" />
-        </button>
-        <button title="Lock admin" onClick={onLock}>
-          <Lock size={24} className="text-neon-purple" />
-        </button>
-      </div>
+  const iconButtonClass =
+    'flex h-11 w-11 items-center justify-center rounded-2xl border border-brand-line bg-white text-brand-ink transition duration-200 hover:-translate-y-0.5 hover:border-brand-green hover:text-brand-green hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-35';
 
-      {/* Editing form */}
-      {isEditing && (
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className="block text-sm mb-1">Title</label>
-            <input
-              type="text"
-              className="w-full bg-gray-800 border border-neon-cyan rounded px-2 py-1 text-white"
-              value={editingGame.title}
-              onChange={(e) => setEditingGame({ ...editingGame, title: e.target.value })}
-            />
+  return (
+    <aside className="fixed right-0 top-0 z-50 h-full w-full border-l border-brand-line bg-brand-mist/92 p-4 shadow-panel backdrop-blur md:w-72">
+      <div className="flex h-full flex-col rounded-[28px] border border-white/80 bg-white/76 p-5">
+        <div className="mb-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-green">
+            Admin
           </div>
-          <div>
-            <label className="block text-sm mb-1">Tags</label>
-            <TagList
-              tags={editingGame.tags}
-              editable={true}
-              onChange={(newTags) => setEditingGame({ ...editingGame, tags: newTags })}
-            />
-          </div>
-          <div className="flex gap-4 mt-2">
-            <button
-              type="button"
-              onClick={onSave}
-              className="flex items-center gap-1 px-3 py-1 bg-neon-green text-black rounded hover:bg-neon-cyan"
-            >
-              <Save size={16} /> Save
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex items-center gap-1 px-3 py-1 bg-neon-pink text-black rounded hover:bg-neon-purple"
-            >
-              <XCircle size={16} /> Cancel
-            </button>
-          </div>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-brand-ink">
+            Control panel
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-brand-ink/65">
+            Manage entries, update tags, reorder the list, or export the current ranking.
+          </p>
         </div>
-      )}
+
+        <div className="flex flex-wrap gap-3">
+          <button title="Add new" onClick={onAdd} className={iconButtonClass}>
+            <PlusCircle size={24} />
+          </button>
+          <button
+            title="Edit selected"
+            onClick={onEdit}
+            disabled={!hasSelection}
+            className={iconButtonClass}
+          >
+            <Edit2 size={24} />
+          </button>
+          <button
+            title="Delete selected"
+            onClick={onDelete}
+            disabled={!hasSelection}
+            className={iconButtonClass}
+          >
+            <Trash2 size={24} />
+          </button>
+          <button
+            title={isReordering ? 'Exit reorder mode' : 'Reorder list'}
+            onClick={onToggleReorder}
+            className={`${iconButtonClass} ${isReordering ? 'border-brand-green bg-brand-greenGlow text-brand-green' : ''}`}
+          >
+            <Move size={24} />
+          </button>
+          <button title="Download TXT" onClick={onDownload} className={iconButtonClass}>
+            <Download size={24} />
+          </button>
+          <button title="Lock admin" onClick={onLock} className={iconButtonClass}>
+            <Lock size={24} />
+          </button>
+        </div>
+
+        {isEditing && (
+          <div className="mt-6 space-y-4 rounded-[24px] border border-brand-line bg-brand-soft/55 p-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-brand-ink/70">Title</label>
+              <input
+                type="text"
+                className="terminal-input"
+                value={editingGame.title}
+                onChange={(e) => setEditingGame({ ...editingGame, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-brand-ink/70">Tags</label>
+              <TagList
+                tags={editingGame.tags}
+                editable={true}
+                onChange={(newTags) => setEditingGame({ ...editingGame, tags: newTags })}
+              />
+            </div>
+            <div className="mt-2 flex gap-3">
+              <button type="button" onClick={onSave} className="primary-button gap-2">
+                <Save size={16} /> Save
+              </button>
+              <button type="button" onClick={onCancel} className="soft-button gap-2">
+                <XCircle size={16} /> Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

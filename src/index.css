@@ -2,9 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles for the neon terminal input */
-.terminal-input {
-  @apply bg-gray-800 text-neon-cyan border border-neon-cyan rounded px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-neon-cyan;
+@layer base {
+  :root {
+    color: #111315;
+    background:
+      radial-gradient(circle at top left, rgba(16, 163, 127, 0.12), transparent 30%),
+      radial-gradient(circle at 85% 10%, rgba(17, 19, 21, 0.08), transparent 20%),
+      linear-gradient(180deg, #f7f8f4 0%, #eef2ea 100%);
+  }
+
+  body {
+    @apply min-h-screen bg-brand-mist text-brand-ink antialiased;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply relative min-h-screen overflow-hidden;
+  }
+
+  .app-shell::before,
+  .app-shell::after {
+    content: '';
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(16px);
+    pointer-events: none;
+  }
+
+  .app-shell::before {
+    width: 18rem;
+    height: 18rem;
+    top: 5rem;
+    left: -4rem;
+    background: rgba(16, 163, 127, 0.12);
+    animation: float 10s ease-in-out infinite;
+  }
+
+  .app-shell::after {
+    width: 14rem;
+    height: 14rem;
+    right: -3rem;
+    bottom: 8rem;
+    background: rgba(17, 19, 21, 0.08);
+    animation: float 12s ease-in-out infinite;
+  }
+
+  .glass-panel {
+    @apply rounded-[28px] border border-white/70 bg-white/70 shadow-card backdrop-blur;
+  }
+
+  .section-label {
+    @apply inline-flex items-center rounded-full border border-brand-line bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-brand-green;
+  }
+
+  .terminal-input {
+    @apply w-full rounded-2xl border border-brand-line bg-white/90 px-4 py-3 text-brand-ink shadow-sm outline-none transition duration-200 placeholder:text-brand-ink/45 focus:border-brand-green focus:ring-4 focus:ring-brand-green/10;
+  }
+
+  .soft-button {
+    @apply inline-flex items-center justify-center rounded-2xl border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition duration-200 hover:-translate-y-0.5 hover:border-brand-green hover:text-brand-green hover:shadow-glow;
+  }
+
+  .primary-button {
+    @apply inline-flex items-center justify-center rounded-2xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-brand-greenDeep;
+  }
 }
 
 .blink-caret {
