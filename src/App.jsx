@@ -35,11 +35,11 @@ function GameApp() {
       try {
         setLoading(true);
         const list = await fetchGames();
-        setGames(list.sort((a, b) => a.order - b.order));
+        setGames((list || []).slice().sort((a, b) => a.order - b.order));
         setLoading(false);
       } catch (err) {
         console.error(err);
-        setError('Failed to load games');
+        setError(`Failed to load games: ${err.message}`);
         setLoading(false);
       }
     }
@@ -159,7 +159,7 @@ function GameApp() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-brand-green">Loading...</div>;
+    return <div className="flex min-h-screen items-center justify-center text-apple-accent">Loading...</div>;
   }
 
   if (error) {
@@ -181,8 +181,8 @@ function GameApp() {
                 muted depth, and a restrained green accent.
               </p>
             </div>
-            <div className="rounded-[24px] border border-brand-line bg-brand-soft/70 px-5 py-4 text-sm text-brand-ink/70 shadow-sm">
-              <div className="font-semibold text-brand-ink">{games.length} ranked games</div>
+              <div className="rounded-[24px] border border-brand-line bg-apple-background px-5 py-4 text-sm text-apple-muted shadow-sm">
+                <div className="font-semibold text-apple-text">{games.length} ranked games</div>
               <div className="mt-1">Admin tools stay tucked away until you unlock them.</div>
             </div>
           </div>

@@ -6,15 +6,15 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          ink: '#111315',
-          panel: '#17191c',
-          line: '#d7ddd6',
-          mist: '#f3f5ef',
-          soft: '#eef2ea',
-          green: '#10a37f',
-          greenDeep: '#0b7a60',
-          greenGlow: '#dff6ee',
-          danger: '#c95c54',
+          ink: '#1c1c1f',
+          panel: '#ffffff',
+          line: '#d6d6d6',
+          mist: '#f5f5f7',
+          soft: '#f2f2f5',
+          green: '#0071e3',
+          greenDeep: '#0051b3',
+          greenGlow: '#e5f1ff',
+          danger: '#ff453a',
         },
       },
       boxShadow: {

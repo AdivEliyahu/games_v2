@@ -4,16 +4,14 @@
 
 @layer base {
   :root {
-    color: #111315;
-    background:
-      radial-gradient(circle at top left, rgba(16, 163, 127, 0.12), transparent 30%),
-      radial-gradient(circle at 85% 10%, rgba(17, 19, 21, 0.08), transparent 20%),
-      linear-gradient(180deg, #f7f8f4 0%, #eef2ea 100%);
+    color: #1c1c1f;
+    background: linear-gradient(180deg, #f5f5f7 0%, #ffffff 100%);
   }
 
   body {
     @apply min-h-screen bg-brand-mist text-brand-ink antialiased;
-    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-family: "SF Pro Display", "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    letter-spacing: 0.02em;
   }
 
   #root {
@@ -23,7 +21,7 @@
 
 @layer components {
   .app-shell {
-    @apply relative min-h-screen overflow-hidden;
+    @apply relative min-h-screen overflow-hidden bg-brand-mist;
   }
 
   .app-shell::before,
@@ -31,46 +29,105 @@
     content: '';
     position: absolute;
     border-radius: 9999px;
-    filter: blur(16px);
+    filter: blur(32px);
     pointer-events: none;
   }
 
   .app-shell::before {
-    width: 18rem;
-    height: 18rem;
-    top: 5rem;
-    left: -4rem;
-    background: rgba(16, 163, 127, 0.12);
-    animation: float 10s ease-in-out infinite;
+    width: 24rem;
+    height: 24rem;
+    top: 4rem;
+    left: -8rem;
+    background: rgba(0, 113, 227, 0.12);
+    animation: float 14s ease-in-out infinite;
   }
 
   .app-shell::after {
-    width: 14rem;
-    height: 14rem;
-    right: -3rem;
-    bottom: 8rem;
-    background: rgba(17, 19, 21, 0.08);
-    animation: float 12s ease-in-out infinite;
+    width: 26rem;
+    height: 26rem;
+    right: -10rem;
+    bottom: 4rem;
+    background: rgba(28, 28, 31, 0.1);
+    animation: float 18s ease-in-out infinite;
   }
 
   .glass-panel {
-    @apply rounded-[28px] border border-white/70 bg-white/70 shadow-card backdrop-blur;
+    @apply rounded-[30px] border border-brand-line bg-white/90 shadow-panel backdrop-blur-sm;
   }
 
   .section-label {
-    @apply inline-flex items-center rounded-full border border-brand-line bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-brand-green;
+    @apply inline-flex items-center rounded-full border border-brand-line bg-white/65 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-brand-ink;
   }
 
   .terminal-input {
-    @apply w-full rounded-2xl border border-brand-line bg-white/90 px-4 py-3 text-brand-ink shadow-sm outline-none transition duration-200 placeholder:text-brand-ink/45 focus:border-brand-green focus:ring-4 focus:ring-brand-green/10;
+    @apply w-full rounded-[14px] border border-brand-line bg-white px-4 py-3 text-brand-ink shadow-sm outline-none transition duration-200 placeholder:text-brand-ink/40 focus:border-brand-green focus:ring-4 focus:ring-brand-green/20;
   }
 
   .soft-button {
-    @apply inline-flex items-center justify-center rounded-2xl border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition duration-200 hover:-translate-y-0.5 hover:border-brand-green hover:text-brand-green hover:shadow-glow;
+    @apply inline-flex items-center justify-center rounded-[14px] border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition duration-200 hover:-translate-y-0.5 hover:border-brand-green hover:text-brand-green hover:shadow-glow;
   }
 
   .primary-button {
-    @apply inline-flex items-center justify-center rounded-2xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-brand-greenDeep;
+    @apply inline-flex items-center justify-center rounded-[14px] bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-brand-greenDeep;
+  }
+
+  .apple-panel {
+    background: #ffffff;
+    border: 1px solid #d6d6d6;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  .apple-background {
+    background: #f4f4f6;
+  }
+
+  .apple-accent {
+    color: #0071e3;
+  }
+
+  .apple-text {
+    color: #1c1c1f;
+  }
+
+  .apple-muted {
+    color: #6e6e73;
+  }
+
+  .apple-card-border {
+    border-color: #d6d6d6;
+  }
+
+  .apple-card-hover:hover {
+    border-color: #0071e3;
+    box-shadow: 0 14px 36px rgba(0, 113, 227, 0.16);
+  }
+
+  .bg-apple-panel {
+    background-color: #ffffff;
+  }
+
+  .border-apple-panel {
+    border-color: #d6d6d6;
+  }
+
+  .border-apple-accent {
+    border-color: #0071e3;
+  }
+
+  .bg-apple-background {
+    background-color: #f4f4f6;
+  }
+
+  .text-apple-text {
+    color: #1c1c1f;
+  }
+
+  .text-apple-accent {
+    color: #0071e3;
+  }
+
+  .text-apple-muted {
+    color: #6e6e73;
   }
 }
 
@@ -84,3 +141,4 @@
     border-color: transparent;
   }
 }
+

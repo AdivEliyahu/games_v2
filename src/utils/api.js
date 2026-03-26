@@ -6,13 +6,69 @@
  * Fetch the current list of games.
  * @returns {Promise<Array>} array of game objects
  */
-export async function fetchGames() {
-  const res = await fetch('/api/games');
-  if (!res.ok) {
-    console.error('Failed to fetch games:', res.status, res.statusText);
-    return null;
+async function tryParseJson(response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    throw new Error(`Invalid JSON response from ${response.url}: ${err.message}`);
   }
-  return res.json();
+}
+
+export async function fetchGames() {
+  const isDev = import.meta.env.DEV;
+
+  // In dev mode we may not have Vercel serverless endpoints available, so use static file.
+  if (isDev) {
+    const raw = await fetch('/games.json');
+    if (!raw.ok) {
+      throw new Error(`/games.json status ${raw.status}`);
+    }
+    const parsed = await raw.json();
+    if (!Array.isArray(parsed)) {
+      throw new Error('/games.json must be an array');
+    }
+    return parsed;
+  }
+
+  // Production/main path: use the API endpoint backed by Vercel blob storage.
+  try {
+    const res = await fetch('/api/games');
+    if (res.ok) {
+      try {
+        const parsed = await tryParseJson(res);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+        console.warn('/api/games returned JSON but not an array. Falling back to /games.json');
+      } catch (jsonErr) {
+        console.warn('API /api/games returned non-JSON; falling back:', jsonErr.message);
+      }
+    } else {
+      const text = await res.text().catch(() => '');
+      console.warn('API /api/games returned non-OK:', res.status, res.statusText, text);
+    }
+  } catch (err) {
+    console.warn('API /api/games fetch failed:', err.message);
+  }
+
+  // Fallback for production (or if API unreachable): static JSON file in project root.
+  try {
+    const raw = await fetch('/games.json');
+    if (!raw.ok) {
+      throw new Error(`/games.json status ${raw.status}`);
+    }
+
+    const parsed = await raw.json();
+    if (!Array.isArray(parsed)) {
+      throw new Error('/games.json must be an array');
+    }
+
+    return parsed;
+  } catch (err) {
+    console.error('Failed to load games.json fallback:', err.message);
+    throw new Error(`Failed to fetch games: ${err.message}`);
+  }
 }
 
 /**
@@ -21,14 +77,24 @@ export async function fetchGames() {
  * @returns {Promise<boolean>} whether the unlock was successful
  */
 export async function unlock(password) {
-  const res = await fetch('/api/auth/unlock', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password }),
-  });
-  if (!res.ok) return false;
-  const json = await res.json();
-  return json.success === true;
+  if (import.meta.env.DEV) {
+    console.warn('Running in DEV; /api/auth/unlock is not available (static mode)');
+    return false;
+  }
+
+  try {
+    const res = await fetch('/api/auth/unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    return json.success === true;
+  } catch (err) {
+    console.warn('API /api/auth/unlock fetch failed:', err.message);
+    return false;
+  }
 }
 
 /**
