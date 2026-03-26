@@ -103,12 +103,31 @@ export async function unlock(password) {
  * @param {{title:string, tags:string[]}} data
  */
 export async function addGame(data) {
+  if (import.meta.env.DEV) {
+    // In local dev without serverless persistence, return a transient game object.
+    return {
+      id: crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      title: data.title,
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      order: data.order || 9999,
+    };
+  }
+
   const res = await fetch('/api/games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to add game');
+  if (!res.ok) {
+    let body = '';
+    try {
+      const json = await res.json();
+      body = json.error || JSON.stringify(json);
+    } catch {
+      body = await res.text().catch(() => '');
+    }
+    throw new Error(`Failed to add game: ${res.status} ${res.statusText} ${body}`);
+  }
   return res.json();
 }
 
@@ -118,12 +137,30 @@ export async function addGame(data) {
  * @param {{title:string, tags:string[]}} data
  */
 export async function updateGame(id, data) {
+  if (import.meta.env.DEV) {
+    return {
+      id,
+      title: data.title,
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      order: data.order || undefined,
+    };
+  }
+
   const res = await fetch(`/api/games/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error('Failed to update game');
+  if (!res.ok) {
+    let body = '';
+    try {
+      const json = await res.json();
+      body = json.error || JSON.stringify(json);
+    } catch {
+      body = await res.text().catch(() => '');
+    }
+    throw new Error(`Failed to update game: ${res.status} ${res.statusText} ${body}`);
+  }
   return res.json();
 }
 
@@ -132,8 +169,21 @@ export async function updateGame(id, data) {
  * @param {string} id
  */
 export async function deleteGame(id) {
+  if (import.meta.env.DEV) {
+    return { success: true };
+  }
+
   const res = await fetch(`/api/games/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete game');
+  if (!res.ok) {
+    let body = '';
+    try {
+      const json = await res.json();
+      body = json.error || JSON.stringify(json);
+    } catch {
+      body = await res.text().catch(() => '');
+    }
+    throw new Error(`Failed to delete game: ${res.status} ${res.statusText} ${body}`);
+  }
   return res.json();
 }
 
@@ -142,12 +192,25 @@ export async function deleteGame(id) {
  * @param {string[]} ids
  */
 export async function reorderGames(ids) {
+  if (import.meta.env.DEV) {
+    return { success: true };
+  }
+
   const res = await fetch('/api/games/reorder', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),
   });
-  if (!res.ok) throw new Error('Failed to reorder games');
+  if (!res.ok) {
+    let body = '';
+    try {
+      const json = await res.json();
+      body = json.error || JSON.stringify(json);
+    } catch {
+      body = await res.text().catch(() => '');
+    }
+    throw new Error(`Failed to reorder games: ${res.status} ${res.statusText} ${body}`);
+  }
   return res.json();
 }
 
