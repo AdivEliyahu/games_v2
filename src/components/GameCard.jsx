@@ -1,5 +1,13 @@
 import React from 'react';
 
+/**
+ * Card component used for both public view and admin view.  Displays the
+ * ranking number, title and tags.  When in admin mode and reorder mode is
+ * disabled the card can be selected for editing.  The design embraces a
+ * minimal, Apple‑inspired aesthetic: a dark panel, subtle border and a
+ * single accent colour for highlights.  There is no dynamic colour
+ * variation per row – consistency helps reinforce the clean look.
+ */
 export default function GameCard({
   game,
   index,
@@ -11,22 +19,16 @@ export default function GameCard({
   attributes,
   dragOverlay = false,
 }) {
-  const accentStyles = [
-    'border-brand-green/30 bg-brand-greenGlow/50',
-    'border-brand-line bg-white/85',
-    'border-brand-ink/10 bg-brand-soft/85',
-    'border-brand-green/20 bg-white/90',
-  ];
-
-  const accentStyle = accentStyles[index % accentStyles.length];
-
   return (
     <div
       className={[
-        'group relative mb-4 cursor-pointer overflow-hidden rounded-[24px] border p-5 shadow-card transition duration-300',
-        accentStyle,
-        isSelected ? 'border-brand-green shadow-glow ring-4 ring-brand-green/10' : 'hover:-translate-y-1 hover:border-brand-green/40',
-        dragOverlay ? 'scale-[0.99] opacity-60' : 'animate-fade-up',
+        'relative rounded-xl p-4 mb-4 cursor-pointer transition-colors duration-200',
+        // Panel and border
+        'bg-apple-panel border border-apple-panel hover:border-apple-accent',
+        // Selection ring
+        isSelected ? 'ring-2 ring-apple-accent' : '',
+        // Drag overlay semi‑transparent
+        dragOverlay ? 'opacity-50' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -38,16 +40,18 @@ export default function GameCard({
       {...attributes}
       {...listeners}
     >
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-green/50 to-transparent opacity-70" />
-      <div className="text-sm font-medium uppercase tracking-[0.24em] text-brand-green/80">
+      {/* Ranking number */}
+      <div className="text-apple-accent font-mono text-sm absolute top-2 left-2">
         #{game.order}
       </div>
-      <h3 className="mt-4 text-2xl font-semibold tracking-tight text-brand-ink">{game.title}</h3>
-      <div className="mt-4 flex flex-wrap gap-2">
+      {/* Title */}
+      <h3 className="text-xl font-semibold mb-2 text-apple-text">{game.title}</h3>
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2">
         {game.tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full border border-brand-line bg-white/80 px-3 py-1 text-sm text-brand-ink/70 transition duration-200 group-hover:border-brand-green/30 group-hover:text-brand-green"
+            className="text-sm text-apple-accent bg-apple-background border border-apple-accent rounded-full px-2 py-0.5"
           >
             #{tag}
           </span>

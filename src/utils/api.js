@@ -8,7 +8,10 @@
  */
 export async function fetchGames() {
   const res = await fetch('/api/games');
-  if (!res.ok) throw new Error('Failed to load games');
+  if (!res.ok) {
+    console.error('Failed to fetch games:', res.status, res.statusText);
+    return null;
+  }
   return res.json();
 }
 

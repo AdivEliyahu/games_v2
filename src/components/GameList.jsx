@@ -16,6 +16,13 @@ import {
 } from '@dnd-kit/sortable';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
+/**
+ * A wrapper component that renders a list of GameCard components and
+ * enables drag‑and‑drop reordering when isReordering is true.  When the
+ * reorder mode is disabled the list behaves like a normal list and cards
+ * can be selected for editing in the admin sidebar.  The onReorder
+ * callback returns an array of game IDs in their new order.
+ */
 export default function GameList({
   games,
   isAdmin,
@@ -24,12 +31,16 @@ export default function GameList({
   onSelect,
   onReorder,
 }) {
+  // Maintain a local array of IDs for drag‑and‑drop.  When the games
+  // prop changes we synchronise the list.  This ensures that reorder
+  // operations act on the latest state.
   const [ids, setIds] = useState(games.map((g) => g.id));
-
   useEffect(() => {
     setIds(games.map((g) => g.id));
   }, [games]);
 
+  // Sensors for pointer and keyboard dragging.  The keyboard sensor
+  // enables accessibility.
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -38,13 +49,15 @@ export default function GameList({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
+  // Handler invoked after a drag operation ends.  When the active item
+  // has moved to a new position we update the ids array and notify the
+  // parent via onReorder.
   function handleDragEnd(event) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
     const oldIndex = ids.indexOf(active.id);
     const newIndex = ids.indexOf(over.id);
     const newIds = arrayMove(ids, oldIndex, newIndex);
@@ -52,9 +65,11 @@ export default function GameList({
     onReorder?.(newIds);
   }
 
+  // When not in reorder mode we do not wrap the list in a DndContext.  This
+  // avoids unnecessary overhead and ensures click handlers work normally.
   if (!isAdmin || !isReordering) {
     return (
-      <div className="grid gap-4">
+      <div>
         {games
           .slice()
           .sort((a, b) => a.order - b.order)
@@ -73,39 +88,50 @@ export default function GameList({
     );
   }
 
+  // When in reorder mode render the sortable list.
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <div className="grid gap-4">
-          {ids.map((id, index) => {
-            const game = games.find((g) => g.id === id);
-            return (
-              <SortableGameCard
-                key={id}
-                game={game}
-                index={index}
-                isSelected={selectedId === id}
-                onSelect={onSelect}
-              />
-            );
-          })}
-        </div>
+        {ids.map((id, index) => {
+          const game = games.find((g) => g.id === id);
+          return (
+            <SortableGameCard
+              key={id}
+              game={game}
+              index={index}
+              isSelected={selectedId === id}
+              onSelect={onSelect}
+            />
+          );
+        })}
       </SortableContext>
     </DndContext>
   );
 }
 
+// Internal component used only in reorder mode.  It wraps a GameCard and
+// applies transform/transition styles based on the drag state.
 function SortableGameCard({ game, index, isSelected, onSelect }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: game.id,
-  });
-
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isSorting,
+  } = useSortable({ id: game.id });
   const style = {
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : undefined,
     transition,
     zIndex: isDragging ? 50 : undefined,
   };
-
   return (
     <div ref={setNodeRef} style={style}>
       <GameCard
