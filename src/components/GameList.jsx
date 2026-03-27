@@ -68,6 +68,14 @@ export default function GameList({
   // When not in reorder mode we do not wrap the list in a DndContext.  This
   // avoids unnecessary overhead and ensures click handlers work normally.
   if (!isAdmin || !isReordering) {
+    if (games.length === 0) {
+      return (
+        <div className="rounded-[24px] border border-dashed border-brand-line bg-apple-background/80 px-6 py-10 text-center text-sm text-apple-muted shadow-sm">
+          No games yet. Unlock admin mode to add the first entry.
+        </div>
+      );
+    }
+
     return (
       <div>
         {games

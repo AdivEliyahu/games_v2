@@ -1,4 +1,4 @@
-const { readBody, verifyAdmin, readGames, writeGames } = require('./_utils');
+const { deleteGameById, readBody, updateGameById, verifyAdmin } = require('./_utils');
 
 // Extract the id from the request URL.  Works even when deployed because
 // req.url contains the path after the domain.
@@ -35,24 +35,17 @@ module.exports = async (req, res) => {
       res.end(JSON.stringify({ error: 'Invalid title' }));
       return;
     }
-    const tagArray = Array.isArray(tags)
-      ? tags.map((t) => String(t).trim().replace(/^#+/, '')).filter((t) => t.length > 0)
-      : [];
     try {
-      const games = await readGames();
-      const idx = games.findIndex((g) => g.id === id);
-      if (idx === -1) {
+      const updatedGame = await updateGameById(id, { title, tags });
+      if (!updatedGame) {
         res.statusCode = 404;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ error: 'Not found' }));
         return;
       }
-      games[idx].title = title.trim();
-      games[idx].tags = tagArray;
-      await writeGames(games);
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(games[idx]));
+      res.end(JSON.stringify(updatedGame));
     } catch (err) {
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
@@ -62,20 +55,13 @@ module.exports = async (req, res) => {
   }
   if (req.method === 'DELETE') {
     try {
-      let games = await readGames();
-      const idx = games.findIndex((g) => g.id === id);
-      if (idx === -1) {
+      const deleted = await deleteGameById(id);
+      if (!deleted) {
         res.statusCode = 404;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ error: 'Not found' }));
         return;
       }
-      games.splice(idx, 1);
-      // Reassign order values sequentially starting at 1
-      games = games
-        .sort((a, b) => a.order - b.order)
-        .map((g, index) => ({ ...g, order: index + 1 }));
-      await writeGames(games);
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ success: true }));

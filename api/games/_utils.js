@@ -1,10 +1,70 @@
 const crypto = require('crypto');
 const fs = require('fs/promises');
 const path = require('path');
-const { list, put } = require('@vercel/blob');
+const { Pool } = require('pg');
 
-const GAMES_BLOB_PATH = 'games.json';
 const LOCAL_GAMES_PATH = path.join(process.cwd(), 'games.json');
+
+function getDatabaseUrl() {
+  return (
+    process.env.SUPABASE_DATABASE_URL ||
+    process.env.SUPABASE_DB_URL ||
+    process.env.DATABASE_URL ||
+    ''
+  );
+}
+
+function getPool() {
+  const databaseUrl = getDatabaseUrl();
+  if (!databaseUrl) {
+    return null;
+  }
+
+  if (!global.__gamesPool || global.__gamesPoolUrl !== databaseUrl) {
+    global.__gamesPool = new Pool({
+      connectionString: databaseUrl,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    });
+    global.__gamesPoolUrl = databaseUrl;
+  }
+
+  return global.__gamesPool;
+}
+
+async function ensureDatabase() {
+  const pool = getPool();
+  if (!pool) {
+    throw new Error('SUPABASE_DATABASE_URL is not configured');
+  }
+
+  if (!global.__gamesDbReadyPromise) {
+    global.__gamesDbReadyPromise = (async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS games (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+          sort_order INTEGER NOT NULL UNIQUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS games_sort_order_idx
+        ON games (sort_order);
+      `);
+    })().catch((error) => {
+      global.__gamesDbReadyPromise = null;
+      throw error;
+    });
+  }
+
+  await global.__gamesDbReadyPromise;
+  return pool;
+}
 
 async function readBody(req) {
   return new Promise((resolve) => {
@@ -64,41 +124,205 @@ async function readLocalSeedGames() {
 }
 
 async function readGames() {
-  try {
-    const { blobs } = await list({
-      prefix: GAMES_BLOB_PATH,
-      limit: 100,
-    });
+  const pool = getPool();
 
-    const blob =
-      blobs.find((item) => item.pathname === GAMES_BLOB_PATH) ??
-      blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
-
-    if (!blob?.url) {
-      return await readLocalSeedGames();
+  if (!pool) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SUPABASE_DATABASE_URL is not configured');
     }
 
-    const response = await fetch(blob.url);
-    const text = await response.text();
-    const data = JSON.parse(text);
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return await readLocalSeedGames();
+    return readLocalSeedGames();
+  }
+
+  await ensureDatabase();
+  const result = await pool.query(
+    `
+      SELECT id, title, tags, sort_order
+      FROM games
+      ORDER BY sort_order ASC, created_at ASC
+    `,
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    order: row.sort_order,
+  }));
+}
+
+function normalizeTags(tags) {
+  return Array.isArray(tags)
+    ? tags
+        .map((tag) => String(tag).trim().replace(/^#+/, ''))
+        .filter((tag) => tag.length > 0)
+    : [];
+}
+
+async function createGame({ id, title, tags }) {
+  const pool = await ensureDatabase();
+  const normalizedTags = normalizeTags(tags);
+  const trimmedTitle = String(title || '').trim();
+
+  const result = await pool.query(
+    `
+      INSERT INTO games (id, title, tags, sort_order)
+      VALUES (
+        $1,
+        $2,
+        $3::jsonb,
+        COALESCE((SELECT MAX(sort_order) FROM games), 0) + 1
+      )
+      RETURNING id, title, tags, sort_order
+    `,
+    [id, trimmedTitle, JSON.stringify(normalizedTags)],
+  );
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    title: row.title,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    order: row.sort_order,
+  };
+}
+
+async function updateGameById(id, { title, tags }) {
+  const pool = await ensureDatabase();
+  const normalizedTags = normalizeTags(tags);
+  const trimmedTitle = String(title || '').trim();
+
+  const result = await pool.query(
+    `
+      UPDATE games
+      SET title = $2,
+          tags = $3::jsonb,
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, title, tags, sort_order
+    `,
+    [id, trimmedTitle, JSON.stringify(normalizedTags)],
+  );
+
+  if (result.rowCount === 0) {
+    return null;
+  }
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    title: row.title,
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    order: row.sort_order,
+  };
+}
+
+async function deleteGameById(id) {
+  const pool = await ensureDatabase();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const deleted = await client.query(
+      `
+        DELETE FROM games
+        WHERE id = $1
+        RETURNING sort_order
+      `,
+      [id],
+    );
+
+    if (deleted.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return false;
+    }
+
+    await client.query(
+      `
+        UPDATE games
+        SET sort_order = sort_order - 1,
+            updated_at = NOW()
+        WHERE sort_order > $1
+      `,
+      [deleted.rows[0].sort_order],
+    );
+
+    await client.query('COMMIT');
+    return true;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
-async function writeGames(games) {
-  const sorted = games.slice().sort((a, b) => a.order - b.order);
-  await put(GAMES_BLOB_PATH, JSON.stringify(sorted, null, 2), {
-    access: 'private',
-    addRandomSuffix: false,
-  });
+async function reorderGamesInDatabase(ids) {
+  const pool = await ensureDatabase();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const current = await client.query(`
+      SELECT id
+      FROM games
+      ORDER BY sort_order ASC, created_at ASC
+    `);
+
+    const currentIds = current.rows.map((row) => row.id);
+    if (currentIds.length !== ids.length) {
+      throw new Error('Mismatched ids length');
+    }
+
+    const requestedIds = new Set(ids);
+    if (requestedIds.size !== ids.length) {
+      throw new Error('Duplicate ids');
+    }
+
+    for (const id of ids) {
+      if (!currentIds.includes(id)) {
+        throw new Error(`Unknown id: ${id}`);
+      }
+    }
+
+    await client.query(`
+      UPDATE games
+      SET sort_order = -sort_order
+    `);
+
+    for (let index = 0; index < ids.length; index += 1) {
+      await client.query(
+        `
+          UPDATE games
+          SET sort_order = $2,
+              updated_at = NOW()
+          WHERE id = $1
+        `,
+        [ids[index], index + 1],
+      );
+    }
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = {
+  createGame,
+  deleteGameById,
+  ensureDatabase,
+  getDatabaseUrl,
+  normalizeTags,
   readBody,
   parseCookies,
+  reorderGamesInDatabase,
   verifyAdmin,
   readGames,
-  writeGames,
+  updateGameById,
 };

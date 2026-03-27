@@ -31,7 +31,7 @@ export async function fetchGames() {
     return parsed;
   }
 
-  // Production/main path: use the API endpoint backed by Vercel blob storage.
+  // Production/main path: use the serverless API backed by Supabase Postgres.
   try {
     const res = await fetch('/api/games');
     if (res.ok) {
@@ -40,33 +40,15 @@ export async function fetchGames() {
         if (Array.isArray(parsed)) {
           return parsed;
         }
-        console.warn('/api/games returned JSON but not an array. Falling back to /games.json');
+        console.warn('/api/games returned JSON but not an array.');
       } catch (jsonErr) {
-        console.warn('API /api/games returned non-JSON; falling back:', jsonErr.message);
+        console.warn('API /api/games returned non-JSON:', jsonErr.message);
       }
     } else {
       const text = await res.text().catch(() => '');
-      console.warn('API /api/games returned non-OK:', res.status, res.statusText, text);
+      throw new Error(`${res.status} ${res.statusText} ${text}`.trim());
     }
   } catch (err) {
-    console.warn('API /api/games fetch failed:', err.message);
-  }
-
-  // Fallback for production (or if API unreachable): static JSON file in project root.
-  try {
-    const raw = await fetch('/games.json');
-    if (!raw.ok) {
-      throw new Error(`/games.json status ${raw.status}`);
-    }
-
-    const parsed = await raw.json();
-    if (!Array.isArray(parsed)) {
-      throw new Error('/games.json must be an array');
-    }
-
-    return parsed;
-  } catch (err) {
-    console.error('Failed to load games.json fallback:', err.message);
     throw new Error(`Failed to fetch games: ${err.message}`);
   }
 }

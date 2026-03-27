@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { readBody, verifyAdmin, readGames, writeGames } = require('./_utils');
+const { createGame, readBody, readGames, verifyAdmin } = require('./_utils');
 
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
@@ -33,22 +33,12 @@ module.exports = async (req, res) => {
       res.end(JSON.stringify({ error: 'Invalid title' }));
       return;
     }
-    const tagArray = Array.isArray(tags)
-      ? tags
-          .map((t) => String(t).trim().replace(/^#+/, ''))
-          .filter((t) => t.length > 0)
-      : [];
     try {
-      const games = await readGames();
-      const maxOrder = games.reduce((max, g) => Math.max(max, g.order || 0), 0);
-      const newGame = {
+      const newGame = await createGame({
         id: crypto.randomUUID(),
-        title: title.trim(),
-        tags: tagArray,
-        order: maxOrder + 1,
-      };
-      const updated = [...games, newGame];
-      await writeGames(updated);
+        title,
+        tags,
+      });
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(newGame));
