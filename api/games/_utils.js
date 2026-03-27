@@ -14,6 +14,61 @@ function getDatabaseUrl() {
   );
 }
 
+function getDatabaseUrlSource() {
+  if (process.env.SUPABASE_DATABASE_URL) return 'SUPABASE_DATABASE_URL';
+  if (process.env.SUPABASE_DB_URL) return 'SUPABASE_DB_URL';
+  if (process.env.DATABASE_URL) return 'DATABASE_URL';
+  return null;
+}
+
+function maskDatabaseUrl(databaseUrl) {
+  if (!databaseUrl) {
+    return '(missing)';
+  }
+
+  return databaseUrl.replace(/(postgres(?:ql)?:\/\/[^:]+:)([^@]*)(@.*)/i, '$1***$3');
+}
+
+function getDatabaseDiagnostics() {
+  const databaseUrl = getDatabaseUrl();
+  const source = getDatabaseUrlSource();
+  const diagnostics = {
+    source,
+    present: Boolean(databaseUrl),
+    maskedUrl: maskDatabaseUrl(databaseUrl),
+    length: databaseUrl.length,
+    containsPlaceholder: databaseUrl.includes('[YOUR-PASSWORD]'),
+  };
+
+  if (!databaseUrl) {
+    return diagnostics;
+  }
+
+  try {
+    const parsed = new URL(databaseUrl);
+    diagnostics.protocol = parsed.protocol;
+    diagnostics.hostname = parsed.hostname;
+    diagnostics.port = parsed.port || '(default)';
+    diagnostics.pathname = parsed.pathname;
+    diagnostics.username = parsed.username || '(missing)';
+    diagnostics.passwordLength = parsed.password.length;
+    diagnostics.hasSearch = Boolean(parsed.search);
+  } catch (error) {
+    diagnostics.parseError = error.message;
+  }
+
+  return diagnostics;
+}
+
+function logDatabaseDiagnostics(context, error) {
+  console.error(`[games] ${context}`, {
+    errorName: error?.name,
+    errorMessage: error?.message,
+    errorCode: error?.code,
+    diagnostics: getDatabaseDiagnostics(),
+  });
+}
+
 function getPublicDatabaseError(error) {
   const message = String(error?.message || 'Unknown database error');
 
@@ -23,6 +78,10 @@ function getPublicDatabaseError(error) {
 
   if (message.includes('[YOUR-PASSWORD]')) {
     return 'SUPABASE_DATABASE_URL still contains the [YOUR-PASSWORD] placeholder';
+  }
+
+  if (message.includes('Invalid URL')) {
+    return 'SUPABASE_DATABASE_URL is not a valid connection string. If the password has special characters, URL-encode it first';
   }
 
   if (
@@ -352,8 +411,10 @@ module.exports = {
   createGame,
   deleteGameById,
   ensureDatabase,
+  getDatabaseDiagnostics,
   getPublicDatabaseError,
   getDatabaseUrl,
+  logDatabaseDiagnostics,
   normalizeTags,
   readBody,
   parseCookies,

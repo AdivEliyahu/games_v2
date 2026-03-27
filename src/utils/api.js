@@ -33,11 +33,16 @@ export async function fetchGames() {
 
   // Production/main path: use the serverless API backed by Supabase Postgres.
   try {
+    console.log('[games] fetchGames request', {
+      mode: isDev ? 'dev' : 'production',
+      url: '/api/games',
+    });
     const res = await fetch('/api/games');
     if (res.ok) {
       try {
         const parsed = await tryParseJson(res);
         if (Array.isArray(parsed)) {
+          console.log('[games] fetchGames success', { count: parsed.length });
           return parsed;
         }
         console.warn('/api/games returned JSON but not an array.');
@@ -46,9 +51,17 @@ export async function fetchGames() {
       }
     } else {
       const text = await res.text().catch(() => '');
+      console.error('[games] fetchGames non-OK response', {
+        status: res.status,
+        statusText: res.statusText,
+        body: text,
+      });
       throw new Error(`${res.status} ${res.statusText} ${text}`.trim());
     }
   } catch (err) {
+    console.error('[games] fetchGames failed', {
+      message: err.message,
+    });
     throw new Error(`Failed to fetch games: ${err.message}`);
   }
 }

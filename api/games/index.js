@@ -1,7 +1,9 @@
 const crypto = require('crypto');
 const {
   createGame,
+  getDatabaseDiagnostics,
   getPublicDatabaseError,
+  logDatabaseDiagnostics,
   readBody,
   readGames,
   verifyAdmin,
@@ -11,13 +13,21 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     // Public read: return the list of games sorted by order
     try {
+      console.log('[games] GET /api/games start', {
+        url: req.url,
+        method: req.method,
+        database: getDatabaseDiagnostics(),
+      });
       const games = await readGames();
       games.sort((a, b) => a.order - b.order);
+      console.log('[games] GET /api/games success', {
+        count: games.length,
+      });
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(games));
     } catch (err) {
-      console.error('GET /api/games failed:', err);
+      logDatabaseDiagnostics('GET /api/games failed', err);
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ error: getPublicDatabaseError(err) }));
@@ -41,16 +51,27 @@ module.exports = async (req, res) => {
       return;
     }
     try {
+      console.log('[games] POST /api/games start', {
+        url: req.url,
+        method: req.method,
+        titleLength: title.length,
+        tagsCount: Array.isArray(tags) ? tags.length : 0,
+        database: getDatabaseDiagnostics(),
+      });
       const newGame = await createGame({
         id: crypto.randomUUID(),
         title,
         tags,
       });
+      console.log('[games] POST /api/games success', {
+        id: newGame.id,
+        order: newGame.order,
+      });
       res.statusCode = 200;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(newGame));
     } catch (err) {
-      console.error('POST /api/games failed:', err);
+      logDatabaseDiagnostics('POST /api/games failed', err);
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ error: getPublicDatabaseError(err) }));
