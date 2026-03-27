@@ -14,10 +14,45 @@ function getDatabaseUrl() {
   );
 }
 
+function getPublicDatabaseError(error) {
+  const message = String(error?.message || 'Unknown database error');
+
+  if (!getDatabaseUrl()) {
+    return 'SUPABASE_DATABASE_URL is not configured';
+  }
+
+  if (message.includes('[YOUR-PASSWORD]')) {
+    return 'SUPABASE_DATABASE_URL still contains the [YOUR-PASSWORD] placeholder';
+  }
+
+  if (
+    message.includes('password authentication failed') ||
+    message.includes('SASL') ||
+    message.includes('authentication')
+  ) {
+    return 'Supabase authentication failed. Check the database password in SUPABASE_DATABASE_URL';
+  }
+
+  if (
+    message.includes('getaddrinfo') ||
+    message.includes('ENOTFOUND') ||
+    message.includes('ECONNREFUSED') ||
+    message.includes('timeout')
+  ) {
+    return 'Could not connect to Supabase. Check the host, port, and network access on the database URL';
+  }
+
+  return message.replace(/postgresql:\/\/[^@]+@/g, 'postgresql://***@');
+}
+
 function getPool() {
   const databaseUrl = getDatabaseUrl();
   if (!databaseUrl) {
     return null;
+  }
+
+  if (databaseUrl.includes('[YOUR-PASSWORD]')) {
+    throw new Error('SUPABASE_DATABASE_URL still contains the [YOUR-PASSWORD] placeholder');
   }
 
   if (!global.__gamesPool || global.__gamesPoolUrl !== databaseUrl) {
@@ -317,6 +352,7 @@ module.exports = {
   createGame,
   deleteGameById,
   ensureDatabase,
+  getPublicDatabaseError,
   getDatabaseUrl,
   normalizeTags,
   readBody,

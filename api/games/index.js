@@ -1,5 +1,11 @@
 const crypto = require('crypto');
-const { createGame, readBody, readGames, verifyAdmin } = require('./_utils');
+const {
+  createGame,
+  getPublicDatabaseError,
+  readBody,
+  readGames,
+  verifyAdmin,
+} = require('./_utils');
 
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
@@ -11,9 +17,10 @@ module.exports = async (req, res) => {
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(games));
     } catch (err) {
+      console.error('GET /api/games failed:', err);
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'Failed to read games' }));
+      res.end(JSON.stringify({ error: getPublicDatabaseError(err) }));
     }
     return;
   }
@@ -43,10 +50,10 @@ module.exports = async (req, res) => {
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(newGame));
     } catch (err) {
-      console.error(err);
+      console.error('POST /api/games failed:', err);
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'Failed to save game' }));
+      res.end(JSON.stringify({ error: getPublicDatabaseError(err) }));
     }
     return;
   }
