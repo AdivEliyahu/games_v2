@@ -12,6 +12,7 @@
     "@dnd-kit/core": "^6.0.7",
     "@dnd-kit/modifiers": "^6.0.1",
     "@dnd-kit/sortable": "^7.0.2",
+    "@supabase/supabase-js": "^2.101.1",
     "lucide-react": "^0.263.0",
     "pg": "^8.20.0",
     "react": "^18.2.0",

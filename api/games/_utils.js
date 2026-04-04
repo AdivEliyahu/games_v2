@@ -53,6 +53,14 @@ function getDatabaseDiagnostics() {
     diagnostics.username = parsed.username || '(missing)';
     diagnostics.passwordLength = parsed.password.length;
     diagnostics.hasSearch = Boolean(parsed.search);
+    diagnostics.connectionKind = parsed.hostname.includes('pooler.supabase.com')
+      ? 'pooler'
+      : parsed.hostname.includes('.supabase.co')
+        ? 'direct'
+        : 'unknown';
+    diagnostics.poolerLikeUsername = parsed.username.includes('.');
+    diagnostics.supabaseHostLike =
+      parsed.hostname.includes('supabase.co') || parsed.hostname.includes('supabase.com');
   } catch (error) {
     diagnostics.parseError = error.message;
   }
@@ -61,11 +69,43 @@ function getDatabaseDiagnostics() {
 }
 
 function logDatabaseDiagnostics(context, error) {
+  const diagnostics = getDatabaseDiagnostics();
+  const hints = [];
+
+  if (!diagnostics.present) {
+    hints.push('No database URL env var is set');
+  }
+
+  if (diagnostics.parseError) {
+    hints.push('Connection string could not be parsed as a URL');
+  }
+
+  if (diagnostics.connectionKind === 'pooler' && !diagnostics.poolerLikeUsername) {
+    hints.push('Pooler URLs usually need a username like postgres.<project-ref>');
+  }
+
+  if (
+    diagnostics.connectionKind === 'direct' &&
+    diagnostics.port !== '5432' &&
+    diagnostics.port !== '(default)'
+  ) {
+    hints.push('Direct Supabase connections usually use port 5432');
+  }
+
+  if (diagnostics.connectionKind === 'pooler' && diagnostics.port !== '6543') {
+    hints.push('Supabase pooler connections usually use port 6543');
+  }
+
+  if (!diagnostics.supabaseHostLike && diagnostics.present) {
+    hints.push('Hostname does not look like a Supabase host');
+  }
+
   console.error(`[games] ${context}`, {
     errorName: error?.name,
     errorMessage: error?.message,
     errorCode: error?.code,
-    diagnostics: getDatabaseDiagnostics(),
+    diagnostics,
+    hints,
   });
 }
 
